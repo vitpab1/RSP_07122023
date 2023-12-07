@@ -1,5 +1,5 @@
 {
-  "HabilitarCocina": false,
+  "HabilitarCocina": true,
   "TiempoMedioDePreparacion": 4,
   "Nombre": "Ramon",
   "CantPedidosFinalizados": 1,

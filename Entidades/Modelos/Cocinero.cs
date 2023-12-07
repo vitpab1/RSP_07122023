@@ -80,6 +80,8 @@ namespace Entidades.Modelos
                     if(pedidos.Count != 0)
                     {
                         this.pedidoEnPreparacion = pedidos.Dequeue();
+                        this.OnPedido.Invoke(this.pedidoEnPreparacion);
+
                         this.EsperarProximoIngreso();
                         this.cantPedidosFinalizados++;
                         DataBaseManager.GuardarTicket(this.nombre, this.pedidoEnPreparacion);
