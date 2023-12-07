@@ -54,6 +54,9 @@ namespace Entidades.Modelos
         public string Nombre { get => nombre; }
         public int CantPedidosFinalizados { get => cantPedidosFinalizados; }
 
+        /// <summary>
+        /// En un hilo secundario, ejecuta NotificarNuevoIngreso, EsperarProximoIngreso, GuardarTicket e incrementar en 1 la cantidad de pedidos finalizados
+        /// </summary>
         private void IniciarIngreso()
         {
             this.tarea = Task.Run(() =>
@@ -77,7 +80,9 @@ namespace Entidades.Modelos
                 this.OnIngreso.Invoke(menu);
             }
         }
-
+        /// <summary>
+        /// Incrementa de a 1 seg el tiempo de demora
+        /// </summary>
         private void EsperarProximoIngreso()
         {
             int tiempoEspera = 0;

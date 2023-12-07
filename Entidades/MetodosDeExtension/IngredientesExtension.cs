@@ -8,7 +8,6 @@ namespace Entidades.MetodosDeExtension
         /// <summary>
         /// Extiende la clase List<EIngrediente> retornando el valor incrementenado en base a los valores de EIngrediente
         /// </summary>
-    
         public static double CalcularCostoIngredientes(this List<EIngrediente> ingredientes, int costoInicial)
         {
            double precioFinal = costoInicial;
