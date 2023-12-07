@@ -6,7 +6,7 @@ using Entidades.Interfaces;
 namespace Entidades.Modelos
 {
     public delegate void DelegadoDemoraAtencion(double demora);
-    public delegate void DelegadoNuevoIngreso(IComestible menu);
+    public delegate void DelegadoPedidoEnCurso(IComestible menu);
 
     public class Cocinero<T> where T : IComestible, new()
     {
@@ -14,16 +14,25 @@ namespace Entidades.Modelos
 
         private int cantPedidosFinalizados; 
         private double demoraPreparacionTotal;
-        private T menu;
+        private T pedidoEnPreparacion;
         private string nombre;
         private Task tarea;
 
-        public event DelegadoNuevoIngreso OnIngreso;
+        private Mozo<T> mozo;
+        private Queue<T> pedidos;
+
+        public event DelegadoPedidoEnCurso OnPedido;
         public event DelegadoDemoraAtencion OnDemora;
+
+
 
         public Cocinero(string nombre)
         {
             this.nombre = nombre;
+            mozo = new Mozo<T>();
+            pedidos = new Queue<T>();
+            this.mozo.OnPedido += this.TomarNuevoPedido;
+
         }
 
         //No hacer nada
@@ -40,10 +49,13 @@ namespace Entidades.Modelos
                 if (value && !this.HabilitarCocina)
                 {
                     this.cancellation = new CancellationTokenSource();
-                    this.IniciarIngreso();
+                    this.mozo.EmpezarATrabajar = true; 
+                    this.EmpezarACocinar();
                 }
                 else
                 {
+                    this.mozo.EmpezarATrabajar = !this.mozo.EmpezarATrabajar;
+
                     this.cancellation.Cancel();
                 }
             }
@@ -54,32 +66,30 @@ namespace Entidades.Modelos
         public string Nombre { get => nombre; }
         public int CantPedidosFinalizados { get => cantPedidosFinalizados; }
 
+        public Queue<T> Pedidos { get => this.pedidos; }
+
         /// <summary>
         /// En un hilo secundario, ejecuta NotificarNuevoIngreso, EsperarProximoIngreso, GuardarTicket e incrementar en 1 la cantidad de pedidos finalizados
         /// </summary>
-        private void IniciarIngreso()
+        private void EmpezarACocinar()
         {
             this.tarea = Task.Run(() =>
             {
                 while (!this.cancellation.IsCancellationRequested)
                 {
-                    this.NotificarNuevoIngreso(); 
-                    this.EsperarProximoIngreso();
-                    this.cantPedidosFinalizados ++;
-                    DataBaseManager.GuardarTicket(this.nombre, this.menu);
+                    if(pedidos.Count != 0)
+                    {
+                        this.pedidoEnPreparacion = pedidos.Dequeue();
+                        this.EsperarProximoIngreso();
+                        this.cantPedidosFinalizados++;
+                        DataBaseManager.GuardarTicket(this.nombre, this.pedidoEnPreparacion);
+
+                    }
+                   
                 }
             }, this.cancellation.Token);
         }
 
-        private void NotificarNuevoIngreso()
-        {
-            if (this.OnIngreso != null)
-            {
-                menu = new T();
-                menu.IniciarPreparacion();
-                this.OnIngreso.Invoke(menu);
-            }
-        }
         /// <summary>
         /// Incrementa de a 1 seg el tiempo de demora
         /// </summary>
@@ -89,7 +99,7 @@ namespace Entidades.Modelos
 
             if (this.OnDemora != null)
             {
-                while (!this.menu.Estado  && !this.cancellation.IsCancellationRequested)
+                while (!this.pedidoEnPreparacion.Estado  && !this.cancellation.IsCancellationRequested)
                 {
                     Thread.Sleep(1000);
                     tiempoEspera++;
@@ -98,6 +108,14 @@ namespace Entidades.Modelos
             }
 
             this.demoraPreparacionTotal += tiempoEspera;
+        }
+
+        private void TomarNuevoPedido(T menu)
+        {
+            if (this.OnPedido is not null)
+            {
+                this.pedidos.Enqueue(menu);
+            }
         }
     }
 }
